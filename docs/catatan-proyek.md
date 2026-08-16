@@ -239,6 +239,36 @@ nama_perusahaan VARCHAR(200) NOT NULL
 
 `VARCHAR(200)` dipilih agar cukup longgar untuk nama perusahaan lokal maupun asing. Panjang `VARCHAR` tidak berarti storage selalu menggunakan 200 karakter; storage mengikuti panjang aktual data. Karena field ini tidak otomatis harus di-index penuh, ukuran 200 karakter tidak dianggap sebagai bottleneck performa.
 
+### 10.5 Alamat Perusahaan
+
+Alamat perusahaan dipisahkan antara alamat bebas dan data wilayah regional:
+
+```text
+alamat         TEXT
+rt             VARCHAR(3) NULL
+rw             VARCHAR(3) NULL
+id_kelurahan   BIGINT UNSIGNED NOT NULL
+```
+
+`alamat` berisi bagian alamat bebas, misalnya:
+
+```text
+Jalan Kaloran nomor 48
+```
+
+atau:
+
+```text
+Sudirman Tower Kav 33-35
+Jalan Jendral Sudirman
+```
+
+`rt` dan `rw` bersifat opsional (`NULL`) karena tidak semua alamat kantor memiliki atau mengetahui RT/RW. Nilainya tidak perlu divalidasi terlalu ketat; input seperti `9`, `09`, atau `009` diperbolehkan sesuai kebutuhan.
+
+`id_kelurahan` wajib diisi dan menjadi referensi ke database regional. Informasi wilayah seperti kelurahan, kecamatan, kota/kabupaten, provinsi, dan kode pos dapat diperoleh melalui relasi tersebut dan nantinya dapat disediakan melalui `VIEW` untuk kebutuhan tampilan/report.
+
+Index untuk field alamat tidak dibuat otomatis. `id_kelurahan` akan dipertimbangkan/diberi index karena merupakan FK dan berpotensi digunakan untuk filtering/join. `alamat`, `rt`, dan `rw` tidak perlu index biasa tanpa kebutuhan query yang nyata.
+
 ## 11. Sequence `id_trx`
 
 Nomor urut `id_trx` menggunakan kombinasi user + tanggal dan reset setiap pergantian tanggal. Detail implementasi mengikuti procedure/trigger SQL yang sudah digunakan dan akan diverifikasi sebelum ditulis sebagai standar final.

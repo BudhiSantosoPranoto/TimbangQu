@@ -247,7 +247,7 @@ Alamat perusahaan dipisahkan antara alamat bebas dan data wilayah regional:
 alamat         TEXT
 rt             VARCHAR(3) NULL
 rw             VARCHAR(3) NULL
-id_kelurahan   BIGINT UNSIGNED NOT NULL
+id_kelurahan   INT(11) UNSIGNED NOT NULL
 ```
 
 `alamat` berisi bagian alamat bebas, misalnya:
@@ -265,7 +265,9 @@ Jalan Jendral Sudirman
 
 `rt` dan `rw` bersifat opsional (`NULL`) karena tidak semua alamat kantor memiliki atau mengetahui RT/RW. Nilainya tidak perlu divalidasi terlalu ketat; input seperti `9`, `09`, atau `009` diperbolehkan sesuai kebutuhan.
 
-`id_kelurahan` wajib diisi dan menjadi referensi ke database regional. Informasi wilayah seperti kelurahan, kecamatan, kota/kabupaten, provinsi, dan kode pos dapat diperoleh melalui relasi tersebut dan nantinya dapat disediakan melalui `VIEW` untuk kebutuhan tampilan/report.
+`id_kelurahan` wajib diisi dan bertipe **`INT(11) UNSIGNED`**, mengikuti tipe primary key/identifier pada database regional. Foreign key harus menggunakan tipe yang kompatibel.
+
+Informasi wilayah seperti kelurahan, kecamatan, kota/kabupaten, provinsi, dan kode pos dapat diperoleh melalui relasi tersebut dan nantinya dapat disediakan melalui `VIEW` untuk kebutuhan tampilan/report.
 
 Index untuk field alamat tidak dibuat otomatis. `id_kelurahan` akan dipertimbangkan/diberi index karena merupakan FK dan berpotensi digunakan untuk filtering/join. `alamat`, `rt`, dan `rw` tidak perlu index biasa tanpa kebutuhan query yang nyata.
 

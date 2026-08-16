@@ -276,30 +276,30 @@ Index untuk field alamat tidak dibuat otomatis. `id_kelurahan` akan dipertimbang
 Field kontak utama perusahaan menggunakan nama singkat:
 
 ```text
-jenis_telp_kantor
- telp_kantor
+telp_kantor
+media_telp_kantor
 nama_cp
 no_hp_cp
-aplikasi_cp
+media_cp
 ```
 
 `telp_kantor`, `no_hp_cp`, dan field nomor kontak lainnya disimpan sebagai `VARCHAR`, bukan numeric, karena nomor telepon dapat memiliki kode negara, kode area, format lokal, atau karakter pemisah.
 
-`telp_kantor` bersifat nullable. `jenis_telp_kantor` membedakan minimal nomor kantor kabel dan mobile, sehingga UI dapat meminta format/kode area yang sesuai.
+`telp_kantor` bersifat nullable. `media_telp_kantor` membedakan media/cara menghubungi nomor tersebut, misalnya Telepon Kabel atau WhatsApp. Field ini merupakan FK ke master `media_kontak`, bukan ENUM.
 
 `nama_cp` dan `no_hp_cp` juga nullable. Contact person disimpan karena secara operasional lebih nyaman bagi admin/support mengetahui siapa orang yang harus dihubungi.
 
-`aplikasi_cp` bukan ENUM. Nilainya merupakan foreign key ke master `aplikasi_kontak`.
+`media_cp` merupakan FK ke master `media_kontak`, untuk menunjukkan media/cara yang dapat digunakan untuk menghubungi contact person.
 
-### 10.7 Master `aplikasi_kontak`
+### 10.7 Master `media_kontak`
 
 Dibuat tabel master global:
 
 ```text
-aplikasi_kontak
----------------
+media_kontak
+------------
 id
-nama_aplikasi
+nama_media
 created_at
 created_by
 updated_at
@@ -308,13 +308,26 @@ deleted_at
 deleted_by
 ```
 
-Primary key menggunakan `SMALLINT UNSIGNED AUTO_INCREMENT`, karena jumlah aplikasi kontak yang mungkin digunakan jauh di bawah kapasitas `SMALLINT UNSIGNED`.
+`media_kontak` berarti **media atau cara yang digunakan untuk menghubungi suatu nomor/contact person**. Field FK yang mengarah ke tabel ini harus diberi komentar database agar developer memahami bahwa nilainya bukan sekadar jenis nomor telepon.
 
-Aplikasi yang umum akan disediakan sejak awal, misalnya WhatsApp, WeChat, LINE, Kakao, dan aplikasi populer lainnya.
+Primary key menggunakan `SMALLINT UNSIGNED AUTO_INCREMENT`, karena jumlah media kontak yang mungkin digunakan jauh di bawah kapasitas `SMALLINT UNSIGNED`.
 
-UI menyediakan operasi **tambah dan ubah** untuk master ini. Tidak ada operasi delete di UI, agar aplikasi kontak yang sudah pernah digunakan tidak mudah menghilang dari referensi data historis.
+Default awal dapat berisi:
 
-Jika suatu saat aplikasi baru belum tersedia, admin dapat menambahkannya melalui UI tanpa perlu mengubah struktur tabel `perusahaan`.
+```text
+1. Tidak ada
+2. Telepon Kabel
+3. WhatsApp
+4. WeChat
+5. LINE
+6. KakaoTalk
+```
+
+dan aplikasi/media populer lainnya.
+
+UI menyediakan operasi **tambah dan ubah** untuk master ini. Tidak ada operasi delete di UI, agar media kontak yang sudah pernah digunakan tidak mudah menghilang dari referensi data historis.
+
+Jika suatu saat media/aplikasi baru belum tersedia, admin dapat menambahkannya melalui UI tanpa perlu mengubah struktur tabel `perusahaan`.
 
 ## 11. Sequence `id_trx`
 

@@ -285,9 +285,9 @@ email
 website
 ```
 
-`email` perusahaan **wajib (`NOT NULL`)** karena digunakan sebagai kanal komunikasi resmi, termasuk kebutuhan invoice, notifikasi subscription, pembayaran, dan komunikasi administratif.
+`email` perusahaan **bersifat nullable**, karena perusahaan kecil/UMKM belum tentu memiliki alamat email. Jika tersedia, email dapat digunakan sebagai kanal komunikasi resmi, termasuk kebutuhan invoice, notifikasi subscription, pembayaran, dan komunikasi administratif.
 
-`website` bersifat **nullable**, karena tidak semua perusahaan memiliki website.
+`website` juga **nullable**, karena tidak semua perusahaan memiliki website.
 
 `telp_kantor`, `no_hp_cp`, dan field nomor kontak lainnya disimpan sebagai `VARCHAR`, bukan numeric, karena nomor telepon dapat memiliki kode negara, kode area, format lokal, atau karakter pemisah.
 

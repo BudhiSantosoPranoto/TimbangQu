@@ -53,7 +53,7 @@ updated_at  DATETIME NULL DEFAULT NULL
 updated_by  BIGINT UNSIGNED NULL
 
 deleted_at  DATETIME NULL DEFAULT NULL
- deleted_by  BIGINT UNSIGNED NULL
+deleted_by  BIGINT UNSIGNED NULL
 ```
 
 Lifecycle:
@@ -273,28 +273,32 @@ Index untuk field alamat tidak dibuat otomatis. `id_kelurahan` akan dipertimbang
 
 ### 10.6 Kontak Perusahaan
 
-Nama field kontak dibuat ringkas:
+Field kontak utama perusahaan menggunakan nama singkat:
 
 ```text
+jenis_telp_kantor
  telp_kantor
- jenis_telp_kantor
- nama_cp
- no_hp_cp
- aplikasi_cp
+nama_cp
+no_hp_cp
+aplikasi_cp
 ```
 
-`telp_kantor` disimpan sebagai `VARCHAR`, bukan tipe numerik, karena nomor telepon dapat mengandung kode negara, kode area, format lokal, dan karakter pemisah.
+`telp_kantor`, `no_hp_cp`, dan field nomor kontak lainnya disimpan sebagai `VARCHAR`, bukan numeric, karena nomor telepon dapat memiliki kode negara, kode area, format lokal, atau karakter pemisah.
 
-`jenis_telp_kantor` digunakan untuk membedakan apakah nomor kantor merupakan telepon kabel atau nomor mobile. Aturan detail nilai/statusnya akan ditetapkan kemudian.
+`telp_kantor` bersifat nullable. `jenis_telp_kantor` membedakan minimal nomor kantor kabel dan mobile, sehingga UI dapat meminta format/kode area yang sesuai.
 
-Contact person disimpan dengan `nama_cp` dan `no_hp_cp`. Nomor contact person tidak diasumsikan selalu menggunakan WhatsApp.
+`nama_cp` dan `no_hp_cp` juga nullable. Contact person disimpan karena secara operasional lebih nyaman bagi admin/support mengetahui siapa orang yang harus dihubungi.
 
-Untuk aplikasi komunikasi contact person dibuat master terpisah:
+`aplikasi_cp` bukan ENUM. Nilainya merupakan foreign key ke master `aplikasi_kontak`.
+
+### 10.7 Master `aplikasi_kontak`
+
+Dibuat tabel master global:
 
 ```text
 aplikasi_kontak
---------------
-id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+---------------
+id
 nama_aplikasi
 created_at
 created_by
@@ -304,7 +308,13 @@ deleted_at
 deleted_by
 ```
 
-Field `aplikasi_cp` pada `perusahaan` akan menjadi foreign key ke `aplikasi_kontak.id`, sehingga daftar aplikasi tidak di-hardcode sebagai ENUM di tabel `perusahaan`. Ini memungkinkan penambahan aplikasi seperti WhatsApp, WeChat, LINE, atau aplikasi lain tanpa mengubah struktur tabel `perusahaan`.
+Primary key menggunakan `SMALLINT UNSIGNED AUTO_INCREMENT`, karena jumlah aplikasi kontak yang mungkin digunakan jauh di bawah kapasitas `SMALLINT UNSIGNED`.
+
+Aplikasi yang umum akan disediakan sejak awal, misalnya WhatsApp, WeChat, LINE, Kakao, dan aplikasi populer lainnya.
+
+UI menyediakan operasi **tambah dan ubah** untuk master ini. Tidak ada operasi delete di UI, agar aplikasi kontak yang sudah pernah digunakan tidak mudah menghilang dari referensi data historis.
+
+Jika suatu saat aplikasi baru belum tersedia, admin dapat menambahkannya melalui UI tanpa perlu mengubah struktur tabel `perusahaan`.
 
 ## 11. Sequence `id_trx`
 

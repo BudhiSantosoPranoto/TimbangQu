@@ -283,11 +283,14 @@ no_hp_cp
 media_cp
 email
 website
+npwp
 ```
 
-`email` perusahaan **bersifat nullable**, karena perusahaan kecil/UMKM belum tentu memiliki alamat email. Jika tersedia, email dapat digunakan sebagai kanal komunikasi resmi, termasuk kebutuhan invoice, notifikasi subscription, pembayaran, dan komunikasi administratif.
+`email` perusahaan bersifat **nullable**, karena perusahaan kecil/UMKM belum tentu memiliki alamat email. Jika tersedia, email dapat digunakan sebagai kanal komunikasi resmi, termasuk kebutuhan invoice, notifikasi subscription, pembayaran, dan komunikasi administratif.
 
 `website` juga **nullable**, karena tidak semua perusahaan memiliki website.
+
+`npwp` bersifat **nullable**. Nama field tetap `npwp` agar sederhana dan konsisten, tetapi harus diberi komentar database dan label UI yang menjelaskan bahwa untuk perusahaan di luar Indonesia, field ini digunakan untuk menyimpan **Tax ID / Tax Identification Number** atau identitas pajak yang setara di negara tersebut.
 
 `telp_kantor`, `no_hp_cp`, dan field nomor kontak lainnya disimpan sebagai `VARCHAR`, bukan numeric, karena nomor telepon dapat memiliki kode negara, kode area, format lokal, atau karakter pemisah.
 

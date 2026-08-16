@@ -53,7 +53,7 @@ updated_at  DATETIME NULL DEFAULT NULL
 updated_by  BIGINT UNSIGNED NULL
 
 deleted_at  DATETIME NULL DEFAULT NULL
-deleted_by  BIGINT UNSIGNED NULL
+ deleted_by  BIGINT UNSIGNED NULL
 ```
 
 Lifecycle:
@@ -270,6 +270,41 @@ Jalan Jendral Sudirman
 Informasi wilayah seperti kelurahan, kecamatan, kota/kabupaten, provinsi, dan kode pos dapat diperoleh melalui relasi tersebut dan nantinya dapat disediakan melalui `VIEW` untuk kebutuhan tampilan/report.
 
 Index untuk field alamat tidak dibuat otomatis. `id_kelurahan` akan dipertimbangkan/diberi index karena merupakan FK dan berpotensi digunakan untuk filtering/join. `alamat`, `rt`, dan `rw` tidak perlu index biasa tanpa kebutuhan query yang nyata.
+
+### 10.6 Kontak Perusahaan
+
+Nama field kontak dibuat ringkas:
+
+```text
+ telp_kantor
+ jenis_telp_kantor
+ nama_cp
+ no_hp_cp
+ aplikasi_cp
+```
+
+`telp_kantor` disimpan sebagai `VARCHAR`, bukan tipe numerik, karena nomor telepon dapat mengandung kode negara, kode area, format lokal, dan karakter pemisah.
+
+`jenis_telp_kantor` digunakan untuk membedakan apakah nomor kantor merupakan telepon kabel atau nomor mobile. Aturan detail nilai/statusnya akan ditetapkan kemudian.
+
+Contact person disimpan dengan `nama_cp` dan `no_hp_cp`. Nomor contact person tidak diasumsikan selalu menggunakan WhatsApp.
+
+Untuk aplikasi komunikasi contact person dibuat master terpisah:
+
+```text
+aplikasi_kontak
+--------------
+id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+nama_aplikasi
+created_at
+created_by
+updated_at
+updated_by
+deleted_at
+deleted_by
+```
+
+Field `aplikasi_cp` pada `perusahaan` akan menjadi foreign key ke `aplikasi_kontak.id`, sehingga daftar aplikasi tidak di-hardcode sebagai ENUM di tabel `perusahaan`. Ini memungkinkan penambahan aplikasi seperti WhatsApp, WeChat, LINE, atau aplikasi lain tanpa mengubah struktur tabel `perusahaan`.
 
 ## 11. Sequence `id_trx`
 

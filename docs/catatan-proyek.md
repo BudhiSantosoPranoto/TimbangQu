@@ -229,6 +229,16 @@ Konsep generator yang disepakati untuk dilanjutkan:
 
 Algoritma dan implementasi MySQL final **belum dinyatakan final**. Sebelum diterapkan, harus diuji dengan function/procedure/trigger MySQL dan simulasi concurrency/performance.
 
+### 10.4 Nama Perusahaan
+
+Field nama perusahaan disepakati menggunakan:
+
+```text
+nama_perusahaan VARCHAR(200) NOT NULL
+```
+
+`VARCHAR(200)` dipilih agar cukup longgar untuk nama perusahaan lokal maupun asing. Panjang `VARCHAR` tidak berarti storage selalu menggunakan 200 karakter; storage mengikuti panjang aktual data. Karena field ini tidak otomatis harus di-index penuh, ukuran 200 karakter tidak dianggap sebagai bottleneck performa.
+
 ## 11. Sequence `id_trx`
 
 Nomor urut `id_trx` menggunakan kombinasi user + tanggal dan reset setiap pergantian tanggal. Detail implementasi mengikuti procedure/trigger SQL yang sudah digunakan dan akan diverifikasi sebelum ditulis sebagai standar final.

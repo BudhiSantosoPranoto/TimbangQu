@@ -281,7 +281,13 @@ media_telp_kantor
 nama_cp
 no_hp_cp
 media_cp
+email
+website
 ```
+
+`email` perusahaan **wajib (`NOT NULL`)** karena digunakan sebagai kanal komunikasi resmi, termasuk kebutuhan invoice, notifikasi subscription, pembayaran, dan komunikasi administratif.
+
+`website` bersifat **nullable**, karena tidak semua perusahaan memiliki website.
 
 `telp_kantor`, `no_hp_cp`, dan field nomor kontak lainnya disimpan sebagai `VARCHAR`, bukan numeric, karena nomor telepon dapat memiliki kode negara, kode area, format lokal, atau karakter pemisah.
 

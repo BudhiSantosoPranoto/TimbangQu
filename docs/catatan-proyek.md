@@ -129,6 +129,63 @@ deleted_by
 
 Primary key `SMALLINT UNSIGNED AUTO_INCREMENT`. Default awal antara lain Tidak ada, Telepon Kabel, WhatsApp, WeChat, LINE, KakaoTalk, dan media populer lainnya. UI hanya Tambah dan Ubah; tidak ada Delete.
 
+### 9.8 Rekening Perusahaan
+
+Rekening perusahaan disiapkan sebagai tabel terpisah walaupun penggunaannya belum wajib untuk operasional awal. Satu perusahaan boleh memiliki lebih dari satu rekening.
+
+Struktur:
+
+```text
+rekening_perusahaan
+-------------------
+id
+id_perusahaan
+nomor_reknt
+id_lk
+created_by
+created_at
+updated_by
+updated_at
+deleted_by
+deleted_at
+```
+
+`nomor_reknt` berarti **nomor rekening non tunai** dan field tersebut wajib diberi komentar database agar developer memahami kepanjangannya.
+
+`id_perusahaan` adalah FK ke `perusahaan.id` dan wajib `NOT NULL`.
+
+`id_lk` adalah FK ke `lembaga_keuangan.id`.
+
+Relasi bersifat one-to-many:
+
+```text
+perusahaan 1 ---- N rekening_perusahaan N ---- 1 lembaga_keuangan
+```
+
+Tidak perlu menyimpan nomor SWIFT/SWIFT-BIC untuk kebutuhan TimbangQu saat ini. Jika kebutuhan transfer internasional muncul di masa depan, kebutuhan tersebut dapat dirancang kemudian.
+
+### 9.9 Master `lembaga_keuangan`
+
+TimbangQu mengikuti struktur existing database yang sudah digunakan:
+
+```text
+lembaga_keuangan
+---------------
+id
+nama
+logo
+created_by
+created_at
+updated_by
+updated_at
+deleted_by
+deleted_at
+```
+
+Tidak perlu menambahkan `kode_lk` terpisah. Informasi singkat dan nama lengkap dapat digabung pada `nama`, misalnya `BCA - Bank Central Asia`, sehingga pencarian oleh admin tetap mudah cukup dengan mengetik `BCA`.
+
+`logo` tetap digunakan untuk kebutuhan tampilan UI dan memiliki nilai unik sesuai struktur existing.
+
 ## 10. Sequence `id_trx`
 
 Nomor urut `id_trx` menggunakan kombinasi user + tanggal dan reset setiap pergantian tanggal. Detail implementasi mengikuti procedure/trigger SQL yang sudah digunakan dan akan diverifikasi sebelum final.

@@ -182,26 +182,50 @@ id_kelurahan   INT(11) UNSIGNED NOT NULL
 
 ```text
 telp_kantor
-media_telp_kantor
+jenis_telp_kantor
 nama_cp
 no_hp_cp
-media_cp
+aplikasi_cp
 email
 website
 npwp
 ```
 
-`email`, `website`, dan `npwp` nullable. `npwp` tetap bernama `npwp`, tetapi komentar database dan label UI menjelaskan bahwa untuk perusahaan luar Indonesia field ini digunakan untuk Tax ID/Tax Identification Number atau identitas pajak setara.
+Nomor kontak disimpan sebagai `VARCHAR`, bukan numeric.
 
-Nomor kontak disimpan sebagai VARCHAR, bukan numeric. `media_telp_kantor` dan `media_cp` adalah FK ke master `media_kontak`.
-
-### 9.7 Master `media_kontak`
+`jenis_telp_kantor` menggunakan `ENUM` karena hanya memiliki dua jenis:
 
 ```text
-media_kontak
-------------
+TELEPON KABEL
+MOBILE
+```
+
+Tidak ada nilai `TIDAK ADA`; jika perusahaan tidak memiliki nomor kantor, `telp_kantor` bernilai `NULL`.
+
+Untuk `TELEPON KABEL`, UI menyediakan dua input: kode area dan nomor telepon. Database menyimpan keduanya sebagai satu nilai pada `telp_kantor` dengan tanda pisah, misalnya `0283-353447`. Saat edit/autofill, UI dapat memisahkan nilai berdasarkan tanda `-` untuk mengisi kembali kode area dan nomor telepon.
+
+Untuk `MOBILE`, `telp_kantor` menyimpan nomor mobile langsung tanpa kode area terpisah.
+
+`aplikasi_cp` adalah FK langsung ke master `aplikasi_kontak`, bukan master jenis telepon tambahan. Master `aplikasi_kontak` harus memiliki record pertama:
+
+```text
+id = 1
+nama = 'TIDAK ADA'
+```
+
+Record berikutnya berisi media/aplikasi populer seperti WhatsApp, WeChat, LINE, KakaoTalk, dan lainnya. `aplikasi_cp` menjelaskan media yang digunakan untuk menghubungi `no_hp_cp`.
+
+`nama_cp`, `no_hp_cp`, dan `aplikasi_cp` nullable. Contact person tidak wajib memiliki WhatsApp; media lain seperti WeChat tetap dapat dipilih.
+
+`email`, `website`, dan `npwp` nullable. `npwp` tetap bernama `npwp`, tetapi komentar database dan label UI menjelaskan bahwa untuk perusahaan luar Indonesia field ini digunakan untuk Tax ID/Tax Identification Number atau identitas pajak setara.
+
+### 9.7 Master `aplikasi_kontak`
+
+```text
+aplikasi_kontak
+---------------
 id
-nama_media
+nama_aplikasi
 created_at
 created_by
 updated_at
@@ -210,9 +234,9 @@ deleted_at
 deleted_by
 ```
 
-`media_kontak` berarti media atau cara yang digunakan untuk menghubungi nomor/contact person. FK yang mengarah ke tabel ini harus diberi komentar database agar developer memahami maknanya.
+`aplikasi_kontak` adalah master media/aplikasi yang digunakan untuk menghubungi contact person. Primary key `SMALLINT UNSIGNED AUTO_INCREMENT`. Default awal disediakan untuk media populer. UI hanya menyediakan Tambah dan Ubah; tidak ada Delete.
 
-Primary key `SMALLINT UNSIGNED AUTO_INCREMENT`. Default awal antara lain Tidak ada, Telepon Kabel, WhatsApp, WeChat, LINE, KakaoTalk, dan media populer lainnya. UI hanya Tambah dan Ubah; tidak ada Delete.
+Record `TIDAK ADA` wajib menjadi ID 1.
 
 ### 9.8 Rekening Perusahaan
 

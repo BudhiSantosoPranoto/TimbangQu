@@ -25,7 +25,7 @@ created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 created_by  BIGINT UNSIGNED NOT NULL
 updated_at  DATETIME NULL DEFAULT NULL
 updated_by  BIGINT UNSIGNED NULL
-deleted_at  DATETIME NULL DEFAULT NULL
+ deleted_at  DATETIME NULL DEFAULT NULL
 deleted_by  BIGINT UNSIGNED NULL
 ```
 
@@ -51,6 +51,8 @@ History status terpisah, append-only dari UI, tidak boleh diedit/dihapus untuk m
 
 Validasi integritas dapat menggunakan trigger `SIGNAL SQLSTATE '45000'` dengan pesan yang jelas. Warning/error minimal Indonesia dan Inggris; Mandarin masih kemungkinan pengembangan.
 
+Untuk pelanggaran business rule yang dapat diprediksi, terutama data duplikat seperti `nama_perusahaan`, trigger harus memberikan pesan `SIGNAL SQLSTATE '45000'` yang jelas dan minimal bilingual Indonesia/Inggris agar admin mengetahui penyebabnya, bukan hanya menerima error MySQL generik.
+
 ## 9. Identitas Perusahaan
 
 ### 9.1 Primary Key
@@ -72,11 +74,15 @@ Tidak memakai AUTO_INCREMENT perusahaan. Konsep generator: sequence terpisah yan
 ### 9.4 Nama Perusahaan
 
 ```text
-nama_perusahaan VARCHAR(200) NOT NULL
+nama_perusahaan VARCHAR(200) NOT NULL UNIQUE
 nama_alias     VARCHAR(200) NULL
 ```
 
-`nama_perusahaan` adalah nama legal/resmi. `nama_alias` adalah nama singkat untuk UI, laporan, dan komunikasi sehari-hari.
+`nama_perusahaan` adalah nama legal/resmi dan mengikuti prinsip nama badan usaha terdaftar harus unik. `nama_alias` adalah nama singkat untuk UI, laporan, dan komunikasi sehari-hari dan tidak harus unik.
+
+Keunikan `nama_perusahaan` harus ditegakkan oleh database dengan UNIQUE constraint. Selain itu, trigger `BEFORE INSERT` dan `BEFORE UPDATE` perlu memvalidasi duplikasi yang relevan dan memberikan `SIGNAL SQLSTATE '45000'` dengan pesan bilingual yang jelas, sehingga admin tidak hanya melihat pesan duplicate-key MySQL yang generik.
+
+Catatan: UNIQUE constraint tetap menjadi pengaman concurrency/database. Trigger digunakan untuk memberikan pesan business-rule yang lebih ramah; aplikasi tidak boleh hanya mengandalkan pengecekan di UI.
 
 ### 9.5 Alamat Perusahaan
 

@@ -2,22 +2,83 @@
 
 > Dokumen ini adalah catatan kerja utama dan acuan pengembangan TimbangQu. Dokumen bersifat **living document** dan diperbarui setiap keputusan desain ditetapkan.
 
-## 10. Identitas Perusahaan
+## 1. Konsep Umum
 
-### 10.4 Nama Perusahaan
+TimbangQu adalah aplikasi SaaS multi-tenant dengan satu database MySQL. Data tenant dipisahkan menggunakan `id_perusahaan` yang wajib `NOT NULL` pada tabel tenant.
 
-Field nama perusahaan:
+## 2. Standar Database
+
+- Engine: InnoDB.
+- Character set: utf8mb4.
+- Collation: utf8mb4_general_ci.
+- Primary key tabel master/non-transaksi: `id BIGINT UNSIGNED AUTO_INCREMENT`.
+- Foreign key digunakan secara resmi.
+- Default FK: `ON DELETE RESTRICT` dan `ON UPDATE CASCADE`, kecuali relasi tertentu membutuhkan aturan berbeda.
+- Nama constraint FK boleh mengikuti nama otomatis MySQL.
+
+## 3. Audit Field
+
+Pola audit standar:
+
+```text
+created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+created_by  BIGINT UNSIGNED NOT NULL
+updated_at  DATETIME NULL DEFAULT NULL
+updated_by  BIGINT UNSIGNED NULL
+deleted_at  DATETIME NULL DEFAULT NULL
+deleted_by  BIGINT UNSIGNED NULL
+```
+
+INSERT mengisi created_*. UPDATE mengisi updated_*. Soft delete mengisi deleted_*. User internal TimbangQu dan user tenant menggunakan satu tabel user.
+
+## 4. ID Transaksi
+
+Tabel transaksi menggunakan `id_trx VARCHAR(50) PRIMARY KEY` dengan format `PREFIKS/DDMMYYYY/ID_USER/URUTAN`. Nomor urut reset berdasarkan kombinasi user + tanggal.
+
+## 5. `kode_tabel`
+
+Master konfigurasi global tanpa `id_perusahaan`. `id` digunakan generator `id_trx`; generator tidak mencari berdasarkan nama tabel. Prefix global dan tidak dapat diubah tenant.
+
+## 6. Status Perusahaan
+
+Status: `menunggu_pembayaran`, `aktif`, `suspended`, `nonaktif`. Detail durasi suspended sebelum nonaktif masih menjadi business rule.
+
+## 7. History Status Perusahaan
+
+History status terpisah, append-only dari UI, tidak boleh diedit/dihapus untuk memperbaiki kesalahan. Setiap perubahan wajib punya keterangan. Dokumen pendukung dapat disimpan sebagai nama file/path relatif, sedangkan file fisik berada di folder server.
+
+## 8. Validasi dan Pesan Error
+
+Validasi integritas dapat menggunakan trigger `SIGNAL SQLSTATE '45000'` dengan pesan yang jelas. Warning/error minimal Indonesia dan Inggris; Mandarin masih kemungkinan pengembangan.
+
+## 9. Identitas Perusahaan
+
+### 9.1 Primary Key
+
+```text
+id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+```
+
+Gap AUTO_INCREMENT diperbolehkan.
+
+### 9.2 `kode_perusahaan`
+
+Business identifier terpisah dari `id`, tidak diturunkan dari AUTO_INCREMENT. Direncanakan `CHAR(10) NOT NULL UNIQUE`, alfabet Crockford Base32. Nilai database 10 karakter, tanda `-` hanya tampilan UI dengan format `1-3-3-3`, contoh `7-K4M-2X9-QTP`.
+
+### 9.3 Generator `kode_perusahaan`
+
+Tidak memakai AUTO_INCREMENT perusahaan. Konsep generator: sequence terpisah yang transactional, permutation deterministik/bijektif pada ruang 50-bit, encode Crockford Base32 10 karakter, bukan random, UNIQUE sebagai pengaman. Implementasi MySQL final masih harus diuji dengan simulasi concurrency/performance.
+
+### 9.4 Nama Perusahaan
 
 ```text
 nama_perusahaan VARCHAR(200) NOT NULL
 nama_alias     VARCHAR(200) NULL
 ```
 
-`nama_perusahaan` adalah nama legal/resmi perusahaan. `nama_alias` adalah nama singkat/nama yang umum digunakan untuk keperluan UI, laporan, dan komunikasi sehari-hari. `nama_alias` nullable karena tidak semua perusahaan membutuhkan alias.
+`nama_perusahaan` adalah nama legal/resmi. `nama_alias` adalah nama singkat untuk UI, laporan, dan komunikasi sehari-hari.
 
-### 10.5 Alamat Perusahaan
-
-Alamat perusahaan dipisahkan antara alamat bebas dan data wilayah regional:
+### 9.5 Alamat Perusahaan
 
 ```text
 alamat         TEXT
@@ -26,11 +87,13 @@ rw             VARCHAR(3) NULL
 id_kelurahan   INT(11) UNSIGNED NOT NULL
 ```
 
-`alamat` berisi bagian alamat bebas. `rt` dan `rw` opsional. `id_kelurahan` wajib.
+`alamat` berisi bagian alamat bebas. `rt` dan `rw` nullable dan tidak divalidasi terlalu ketat. `id_kelurahan` wajib dan menjadi referensi database regional.
 
-### 10.6 Kontak Perusahaan
+**Kode pos, kecamatan, kota/kabupaten, provinsi, dan informasi wilayah lain tidak disimpan ulang di tabel `perusahaan`; semuanya diperoleh melalui `id_kelurahan` dari database regional dan dapat disajikan melalui `VIEW`.** Tujuannya menghindari duplikasi data regional dan menjaga konsistensi.
 
-Field kontak utama:
+`id_kelurahan` perlu index karena merupakan FK dan berpotensi digunakan untuk join/filter. `alamat`, `rt`, dan `rw` tidak diberi index biasa tanpa kebutuhan query nyata.
+
+### 9.6 Kontak Perusahaan
 
 ```text
 telp_kantor
@@ -43,11 +106,11 @@ website
 npwp
 ```
 
-`email`, `website`, dan `npwp` nullable. `npwp` tetap bernama `npwp`, tetapi komentar database dan label UI menjelaskan bahwa perusahaan luar Indonesia menggunakan Tax ID/Tax Identification Number yang setara.
+`email`, `website`, dan `npwp` nullable. `npwp` tetap bernama `npwp`, tetapi komentar database dan label UI menjelaskan bahwa untuk perusahaan luar Indonesia field ini digunakan untuk Tax ID/Tax Identification Number atau identitas pajak setara.
 
-`media_telp_kantor` dan `media_cp` adalah FK ke master `media_kontak`.
+Nomor kontak disimpan sebagai VARCHAR, bukan numeric. `media_telp_kantor` dan `media_cp` adalah FK ke master `media_kontak`.
 
-## 10.7 Master `media_kontak`
+### 9.7 Master `media_kontak`
 
 ```text
 media_kontak
@@ -64,31 +127,27 @@ deleted_by
 
 `media_kontak` berarti media atau cara yang digunakan untuk menghubungi nomor/contact person. FK yang mengarah ke tabel ini harus diberi komentar database agar developer memahami maknanya.
 
-Primary key `SMALLINT UNSIGNED AUTO_INCREMENT`.
+Primary key `SMALLINT UNSIGNED AUTO_INCREMENT`. Default awal antara lain Tidak ada, Telepon Kabel, WhatsApp, WeChat, LINE, KakaoTalk, dan media populer lainnya. UI hanya Tambah dan Ubah; tidak ada Delete.
 
-Default awal antara lain: Tidak ada, Telepon Kabel, WhatsApp, WeChat, LINE, KakaoTalk, dan media populer lainnya.
+## 10. Sequence `id_trx`
 
-UI hanya menyediakan Tambah dan Ubah; tidak menyediakan Delete.
+Nomor urut `id_trx` menggunakan kombinasi user + tanggal dan reset setiap pergantian tanggal. Detail implementasi mengikuti procedure/trigger SQL yang sudah digunakan dan akan diverifikasi sebelum final.
 
-## 11. Sequence `id_trx`
+## 11. Timezone dan Tanggal/Waktu
 
-Nomor urut `id_trx` menggunakan kombinasi user + tanggal dan reset setiap pergantian tanggal. Detail implementasi mengikuti procedure/trigger SQL yang sudah digunakan dan akan diverifikasi sebelum ditulis sebagai standar final.
+- Operasional awal wilayah UTC+7 seperti Bangkok/Hanoi/Jakarta.
+- Penyimpanan menggunakan DATETIME, bukan TIMESTAMP.
+- Format tanggal umum MySQL: YYYY-MM-DD.
 
-## 12. Timezone dan Tanggal/Waktu
+## 12. Langganan dan Penagihan
 
-- Operasional awal menggunakan wilayah UTC+7 seperti Bangkok/Hanoi/Jakarta.
-- Penyimpanan menggunakan `DATETIME`, bukan `TIMESTAMP`.
-- Format tanggal umum MySQL: `YYYY-MM-DD`.
+TimbangQu menggunakan mekanisme subscription yang sebisa mungkin otomatis. Detail paket, subscription, invoice, Midtrans, webhook, jatuh tempo, grace period, suspended, dan nonaktif masih dibahas.
 
-## 13. Langganan dan Penagihan
-
-TimbangQu menggunakan mekanisme subscription yang sebisa mungkin otomatis. Detail paket, invoice, Midtrans, webhook, jatuh tempo, grace period, suspended, dan nonaktif masih akan dibahas.
-
-## 14. Prinsip Dokumentasi
+## 13. Prinsip Dokumentasi
 
 Repository GitHub adalah pusat dokumentasi teknis dan bisnis TimbangQu. Dokumen Markdown adalah living document dan setiap keputusan yang sudah disepakati langsung dicatat.
 
-## 15. Hal yang Masih Perlu Dibahas
+## 14. Hal yang Masih Perlu Dibahas
 
 1. Struktur tabel perusahaan secara rinci.
 2. Algoritma final generator `kode_perusahaan`.
@@ -104,3 +163,4 @@ Repository GitHub adalah pusat dokumentasi teknis dan bisnis TimbangQu. Dokumen 
 12. Struktur transaksi penimbangan.
 13. Generator `id_trx` yang aman terhadap concurrency.
 14. Index, constraint, dan strategi performa database.
+15. Detail struktur final tabel `perusahaan`.

@@ -25,7 +25,7 @@ created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 created_by  BIGINT UNSIGNED NOT NULL
 updated_at  DATETIME NULL DEFAULT NULL
 updated_by  BIGINT UNSIGNED NULL
- deleted_at  DATETIME NULL DEFAULT NULL
+deleted_at  DATETIME NULL DEFAULT NULL
 deleted_by  BIGINT UNSIGNED NULL
 ```
 
@@ -41,17 +41,96 @@ Master konfigurasi global tanpa `id_perusahaan`. `id` digunakan generator `id_tr
 
 ## 6. Status Perusahaan
 
-Status: `menunggu_pembayaran`, `aktif`, `suspended`, `nonaktif`. Detail durasi suspended sebelum nonaktif masih menjadi business rule.
+Status menggunakan master table terpisah, bukan `ENUM`:
+
+```text
+status_perusahaan
+-----------------
+id TINYINT UNSIGNED
+nama
+keterangan
+created_by
+created_at
+updated_by
+updated_at
+deleted_by
+deleted_at
+```
+
+Status default:
+
+1. `MENUNGGU PEMBAYARAN` — perusahaan telah terdaftar tetapi belum melakukan pembayaran untuk mengaktifkan layanan.
+2. `AKTIF` — perusahaan telah melakukan pembayaran dan layanan berlangganan sedang aktif sesuai periode subscription.
+3. `SUSPENDED` — layanan perusahaan dihentikan sementara karena alasan tertentu, misalnya tagihan belum dibayar, masalah administrasi, atau alasan lain yang dicatat pada history status.
+4. `NONAKTIF` — perusahaan tidak lagi berstatus sebagai pelanggan aktif, misalnya kontrak tidak diperpanjang atau tidak melakukan pembayaran dalam jangka waktu yang ditentukan.
+
+`keterangan` pada master adalah definisi resmi status, bukan alasan spesifik mengapa perusahaan tertentu masuk status tersebut.
+
+Semua status boleh berpindah ke status mana pun. Arah transisi tidak dibatasi oleh FK/constraint karena kondisi lapangan dapat menghasilkan kasus yang belum diperkirakan. Business rule yang lebih spesifik dapat diterapkan di UI/proses tanpa mengunci database.
+
+`perusahaan` menyimpan status saat ini. Setiap perubahan status dibuat sebagai record baru pada `history_status_perusahaan`, termasuk perubahan dari status ke status yang sama jika admin melakukan koreksi/penegasan.
 
 ## 7. History Status Perusahaan
 
-History status terpisah, append-only dari UI, tidak boleh diedit/dihapus untuk memperbaiki kesalahan. Setiap perubahan wajib punya keterangan. Dokumen pendukung dapat disimpan sebagai nama file/path relatif, sedangkan file fisik berada di folder server.
+History status dibuat sebagai tabel terpisah dan bersifat **append-only**. Record history tidak boleh diedit atau dihapus untuk memperbaiki kesalahan. Jika terjadi salah input, admin harus membuat perubahan status baru dengan keterangan koreksi, sehingga jejak kesalahan tetap terlihat oleh direksi.
+
+Struktur:
+
+```text
+history_status_perusahaan
+--------------------------
+id
+id_perusahaan
+id_status_lama
+id_status_baru
+keterangan
+nama_file
+created_by
+created_at
+```
+
+`keterangan` wajib diisi untuk setiap perubahan status. Isinya menjelaskan alasan/status change secara manusiawi dan tidak boleh ditimpa setelah tersimpan.
+
+`nama_file` nullable. Jika ada dokumen pendukung, database hanya menyimpan nama/path file; file fisiknya disimpan pada folder server sesuai pola aplikasi.
+
+Tidak perlu `diubah_oleh` karena identitas tersebut dapat diperoleh melalui `created_by` → `users.id`. Tidak perlu `updated_*` atau `deleted_*` karena history bersifat append-only.
+
+### 7.1 VIEW History untuk UI
+
+UI tidak perlu melakukan JOIN kompleks sendiri. Sediakan VIEW untuk menampilkan history dalam bentuk yang mudah dibaca manusia:
+
+```sql
+SELECT
+    h.id,
+    h.id_perusahaan,
+    sl.nama AS status_lama,
+    sb.nama AS status_baru,
+    h.keterangan,
+    h.nama_file,
+    h.created_by,
+    u.nama AS diubah_oleh,
+    h.created_at AS tanggal_perubahan
+FROM history_status_perusahaan h
+JOIN status_perusahaan sl ON sl.id = h.id_status_lama
+JOIN status_perusahaan sb ON sb.id = h.id_status_baru
+JOIN users u ON u.id = h.created_by;
+```
+
+VIEW tersebut dipakai sebagai sumber tampilan UI, sehingga admin/direksi dapat melihat:
+
+```text
+Tanggal | Dari | Menjadi | Diubah Oleh | Keterangan | Dokumen
+```
+
+`diubah_oleh` dan nama status adalah data hasil JOIN, bukan kolom yang diduplikasi ke history.
 
 ## 8. Validasi dan Pesan Error
 
 Validasi integritas dapat menggunakan trigger `SIGNAL SQLSTATE '45000'` dengan pesan yang jelas. Warning/error minimal Indonesia dan Inggris; Mandarin masih kemungkinan pengembangan.
 
 Untuk pelanggaran business rule yang dapat diprediksi, terutama data duplikat seperti `nama_perusahaan`, trigger harus memberikan pesan `SIGNAL SQLSTATE '45000'` yang jelas dan minimal bilingual Indonesia/Inggris agar admin mengetahui penyebabnya, bukan hanya menerima error MySQL generik.
+
+Untuk setiap tabel/proses yang memiliki business rule penting, validasi database dan pesan error yang informatif harus dipertimbangkan; UI tidak boleh menjadi satu-satunya lapisan validasi.
 
 ## 9. Identitas Perusahaan
 

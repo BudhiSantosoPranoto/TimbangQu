@@ -186,6 +186,36 @@ Tidak perlu menambahkan `kode_lk` terpisah. Informasi singkat dan nama lengkap d
 
 `logo` tetap digunakan untuk kebutuhan tampilan UI dan memiliki nilai unik sesuai struktur existing.
 
+### 9.10 Jenis Badan Usaha
+
+Jenis badan usaha menggunakan master table terpisah, bukan `ENUM`, agar dapat diperluas tanpa mengubah struktur tabel `perusahaan`.
+
+```text
+jenis_badan_usaha
+-----------------
+id TINYINT UNSIGNED
+nama
+created_by
+created_at
+updated_by
+updated_at
+deleted_by
+deleted_at
+```
+
+Master diisi dengan data default selengkap mungkin untuk kebutuhan Indonesia. Tidak disediakan CRUD UI untuk saat ini karena daftarnya relatif stabil, tetapi audit field tetap disediakan untuk kemungkinan kebutuhan CRUD di masa depan.
+
+Record pertama wajib:
+
+```text
+id = 1
+nama = 'BELUM DIKETAHUI'
+```
+
+Setelah itu baru jenis badan usaha umum seperti `PT`, `CV`, `Firma`, `Koperasi`, `Yayasan`, dan bentuk usaha Indonesia lainnya.
+
+Pada tabel `perusahaan`, `id_jenis_badan_usaha` direncanakan `TINYINT UNSIGNED NOT NULL` dan menjadi FK ke `jenis_badan_usaha.id`, sehingga data perusahaan selalu memiliki nilai yang jelas; jika jenis sebenarnya belum diketahui, gunakan record `BELUM DIKETAHUI`, bukan `NULL`.
+
 ## 10. Sequence `id_trx`
 
 Nomor urut `id_trx` menggunakan kombinasi user + tanggal dan reset setiap pergantian tanggal. Detail implementasi mengikuti procedure/trigger SQL yang sudah digunakan dan akan diverifikasi sebelum final.
